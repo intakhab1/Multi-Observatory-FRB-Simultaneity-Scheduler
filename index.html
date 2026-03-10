@@ -150,9 +150,22 @@
       width: 48%; min-width: 260px; max-width: 500px;
       height: auto; border: 1px solid #ccc; border-radius: 6px;
     }
-    /* on small screens stack plots full-width */
+    /* on small screens: horizontal scroll slider so both plots are side-by-side */
     @media (max-width: 640px) {
-      .plot-container img { width: 100%; min-width: unset; }
+      .plot-container {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        justify-content: flex-start;
+        gap: 10px;
+        padding: 12px 10px;
+      }
+      .plot-container img {
+        width: 82vw; min-width: 82vw; max-width: 82vw;
+        flex-shrink: 0;
+        scroll-snap-align: start;
+      }
     }
 
     /* footer */
@@ -177,8 +190,13 @@
     @media (max-width: 600px) {
       .input-row { grid-template-columns: 1fr 1fr; }
       .obs-row { grid-template-columns: 1fr; }
-      .results-header { flex-direction: column; align-items: flex-start; }
-      .time-selector { width: 100%; justify-content: space-between; }
+      .results-header { flex-direction: row; align-items: center; flex-wrap: wrap; }
+      .time-selector {
+        width: auto; margin-left: auto;
+        padding: 4px 8px; gap: 4px;
+      }
+      .time-selector label { font-size: 11px; white-space: nowrap; }
+      .time-selector select { font-size: 11px; }
       .container { padding: 0 10px; margin: 14px auto; }
       .card { padding: 16px 14px; margin-bottom: 14px; }
       header { padding: 14px 16px; font-size: 15px; }
@@ -186,7 +204,10 @@
 
     /* Phone (≤430px) */
     @media (max-width: 430px) {
-      .input-row { grid-template-columns: 1fr 1fr; }
+      .input-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 10px;
+      }
       .input-row .input-group:nth-child(3),
       .input-row .input-group:nth-child(4) { grid-column: 1 / -1; }
       .input-row .input-group:nth-child(5) { grid-column: 1; }
@@ -514,13 +535,23 @@ function makePlotRow(id, day, timeMode) {
   tr.id = id;
   tr.className = "plot-row";
   const { optImg, radImg } = pickPlots(day, timeMode);
+  const optSrc = optImg ? `data:image/png;base64,${optImg}` : '';
+  const radSrc = radImg ? `data:image/png;base64,${radImg}` : '';
   tr.innerHTML = `<td colspan="6">
-    <div class="plot-container">
-      <img src="data:image/png;base64,${optImg || ''}" onerror="this.style.display='none'" alt="Optical visibility plot">
-      <img src="data:image/png;base64,${radImg || ''}" onerror="this.style.display='none'" alt="Radio visibility plot">
+    <div class="plot-container" id="pc-${id}">
+      ${optSrc ? `<img src="${optSrc}" onerror="this.remove();checkPlotContainer('pc-${id}')" alt="Optical visibility plot">` : ''}
+      ${radSrc ? `<img src="${radSrc}" onerror="this.remove();checkPlotContainer('pc-${id}')" alt="Radio visibility plot">` : ''}
+      ${!optSrc && !radSrc ? '<p style="color:#aaa;padding:12px;font-size:13px">Plots not available</p>' : ''}
     </div>
   </td>`;
   return tr;
+}
+
+function checkPlotContainer(pcId) {
+  const pc = document.getElementById(pcId);
+  if (pc && pc.querySelectorAll('img').length === 0) {
+    pc.innerHTML = '<p style="color:#aaa;padding:12px;font-size:13px">Plot unavailable</p>';
+  }
 }
 
 function togglePlot(id) {
