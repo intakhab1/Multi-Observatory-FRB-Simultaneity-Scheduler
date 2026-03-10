@@ -1,7 +1,11 @@
 import os
+import sys
 import json
 import mimetypes
+import datetime
+import traceback
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
 
 from pipeline import run_pipeline, OBSERVATORY_REGISTRY
@@ -12,6 +16,23 @@ PORT = int(os.environ.get("PORT", 8001))
 # directory where this script lives — used to serve static files
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# threading server (for long computations)
+class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
+    """Each request runs in its own thread so long /compute calls
+    never block /observatories or index.html fetches."""
+    daemon_threads = True
+
+
+#logging helpers
+def _now() -> str:
+    """Timezone-aware UTC timestamp (replaces deprecated datetime.utcnow)."""
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+
+def _log(label: str, value: str):
+    print(f"{label:<22}: {value}", flush=True)
+
+def _sep(char="─", n=58):
+    print(char * n, flush=True)
 
 class RequestHandler(BaseHTTPRequestHandler):
 
@@ -49,10 +70,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         radio_key   = params.get("radio_obs",   ["GBO"])[0]
 
         if not ra or not dec:
-            self._send_cors(400)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps({"error": "Missing RA or Dec"}).encode())
+            self._json({"error": "Missing RA or Dec"}, status=400)
             return
 
         try:
@@ -60,7 +78,17 @@ class RequestHandler(BaseHTTPRequestHandler):
         except ValueError:
             airmass_limit = 2.5
 
+        #request header log
+        print(f"[{datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC] NEW COMPUTE REQUEST")
+        print(f"RA : {ra}")
+        print(f"Dec : {dec}")
+        print(f"Date range : {start_date} → {end_date}")
+        print(f"Max airmass : {airmass_limit}")
+        print(f"Optical obs : {optical_key}")
+        print(f"Radio obs : {radio_key}")
+
         try:
+            t0 = datetime.datetime.now(datetime.timezone.utc)
             result = run_pipeline(
                 ra, dec,
                 start_date   = start_date,
@@ -69,6 +97,10 @@ class RequestHandler(BaseHTTPRequestHandler):
                 optical_key  = optical_key,
                 radio_key    = radio_key,
             )
+            elapsed = (datetime.datetime.now(datetime.timezone.utc) - t0).total_seconds()
+            nights  = len(result.get("next_7_days", []))
+            hits    = sum(1 for d in result.get("next_7_days", []) if d.get("windows"))
+            print(f"{nights} nights processed in {elapsed:.1f}s — {hits} nights with joint window")
             self._json(result)
         except Exception as e:
             import traceback
@@ -117,12 +149,18 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(payload)
 
-    # suppress default request logs— comment out to re-enable
+    #all requests appear in Render logs
     def log_message(self, fmt, *args):
-        pass
+        sys.stderr.write("%s - - [%s] %s\n" % (
+            self.address_string(),
+            self.log_date_time_string(),
+            fmt % args
+        ))
 
 
 if __name__ == "__main__":
-    server = HTTPServer(("0.0.0.0", PORT), RequestHandler)
-    print(f"Server running at http://localhost:{PORT}")
+    server = ThreadingHTTPServer(("0.0.0.0", PORT), RequestHandler)
+    server.socket.settimeout(None)
+    # server = HTTPServer(("0.0.0.0", PORT), RequestHandler)
+    print(f"Server started — http://0.0.0.0:{PORT}", flush=True)
     server.serve_forever()
