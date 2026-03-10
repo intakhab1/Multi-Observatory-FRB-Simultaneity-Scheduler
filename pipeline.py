@@ -182,22 +182,47 @@ def highlight_windows(ax, windows):
             except:
                 pass
 
+# def shade_twilight_manual(ax, observer, time_grid):
+#     """Manually adds twilight shading to GBO altitude plot."""
+#     sun_coords = get_sun(time_grid).transform_to(AltAz(obstime=time_grid, location=observer.location))
+#     sun_alt = sun_coords.alt.deg
+#     for i in range(len(time_grid) - 1):
+#         t_start, t_end = time_grid[i].plot_date, time_grid[i+1].plot_date
+#         alt = sun_alt[i]
+#         if alt <= -18: # Astronomical Night
+#             ax.axvspan(t_start, t_end, color='#a9a9a9', alpha=0.2, zorder=0)
+#         elif alt <= -12: # Astronomical Twilight
+#             ax.axvspan(t_start, t_end, color='#bdbdbd', alpha=0.2, zorder=0)
+#         elif alt <= -6: # Nautical Twilight
+#             ax.axvspan(t_start, t_end, color='#d3d3d3', alpha=0.2, zorder=0)
+#         elif alt <= 0: # Civil Twilight
+#             ax.axvspan(t_start, t_end, color='#e9e9e9', alpha=0.2, zorder=0)
 def shade_twilight_manual(ax, observer, time_grid):
     """Manually adds twilight shading to GBO altitude plot."""
     sun_coords = get_sun(time_grid).transform_to(AltAz(obstime=time_grid, location=observer.location))
     sun_alt = sun_coords.alt.deg
-    for i in range(len(time_grid) - 1):
-        t_start, t_end = time_grid[i].plot_date, time_grid[i+1].plot_date
-        alt = sun_alt[i]
-        if alt <= -18: # Astronomical Night
-            ax.axvspan(t_start, t_end, color='#a9a9a9', alpha=0.2, zorder=0)
-        elif alt <= -12: # Astronomical Twilight
-            ax.axvspan(t_start, t_end, color='#bdbdbd', alpha=0.2, zorder=0)
-        elif alt <= -6: # Nautical Twilight
-            ax.axvspan(t_start, t_end, color='#d3d3d3', alpha=0.2, zorder=0)
-        elif alt <= 0: # Civil Twilight
-            ax.axvspan(t_start, t_end, color='#e9e9e9', alpha=0.2, zorder=0)
 
+    def _alt_to_color(alt):
+        if alt <= -18:   return '#a9a9a9'# Astronomical Night
+        elif alt <= -12: return '#bdbdbd'# Astronomical Twilight
+        elif alt <= -6:  return '#d3d3d3'# Nautical Twilight
+        elif alt <= 0:   return '#e9e9e9'# Civil Twilight
+        return None
+
+    # Batch consecutive identical segments → single axvspan per run (fast)
+    i = 0
+    n = len(time_grid)
+    while i < n - 1:
+        c = _alt_to_color(sun_alt[i])
+        if c is None:
+            i += 1
+            continue
+        j = i + 1
+        while j < n - 1 and _alt_to_color(sun_alt[j]) == c:
+            j += 1
+        ax.axvspan(time_grid[i].plot_date, time_grid[j].plot_date,
+                   color=c, alpha=0.2, zorder=0)
+        i = j
 def generate_airmass_plot(coord, night_date_str, mode="UTC", observer_name="GTC", windows=None,
                            observer_obj=None, obs_type="optical", plot_tz=None, plot_tz_label=None):
     """
@@ -377,7 +402,7 @@ def generate_joint_plot(coord, night_date_str, mode="UTC", windows=None,
         plot_airmass(target, rad_obs, time_midnight, ax=ax, brightness_shading=False, 
                      style_kwargs={'color': 'red', 'linewidth': 1.5, 'linestyle': '--'})
         
-        # --- MOON PLOT COMMENTED OUT ---
+        # moon plot 
         try:
             time_grid = time_midnight + np.linspace(-12, 12, 100) * u.hour
             moon = get_body("moon", time_grid, location=opt_obs.location)
@@ -387,7 +412,6 @@ def generate_joint_plot(coord, night_date_str, mode="UTC", windows=None,
             ax.plot(time_grid.plot_date, moon_airmass, color='gray', linestyle=':', label='Moon', alpha=0.6)
         except Exception:
             pass
-        # ------------------------------------------------------------------
 
         highlight_windows(ax, windows)
 
@@ -578,7 +602,7 @@ def compute_nightly_windows(coord, date_str, airmass_limit, start_date, end_date
             print(f"Radio Altitude       : {altaz_rad.alt.deg:.2f}  (Min: 5)")
             print(f"Sun Altitude         : {sun_altaz.alt.deg:.2f}  (Dark if < -18)")
         except Exception as e:
-            print(f"Date: {date_str}  [NO JOINT WINDOW]  (log error: {e})")
+            print(f"Date: {date_str}  [No Joint Window]  (log error: {e})")
         return []
 
     windows = []
@@ -809,7 +833,7 @@ def run_pipeline(ra, dec, start_date=None, end_date=None, airmass_limit=2.5,
         "dec_input": dec, 
         "ra_deg": round(coord.ra.deg, 6), 
         "dec_deg": round(coord.dec.deg, 6),
-        # Include selected observatory metadata so the frontend can show names/labels
+        #include selected observatory metadata so the frontend can show names/labels
         "optical_obs": OBSERVATORY_REGISTRY["optical"][optical_key],
         "radio_obs":   OBSERVATORY_REGISTRY["radio"][radio_key],
         "tonight": {
@@ -831,7 +855,7 @@ if __name__ == "__main__":
     # ra_val, dec_val = "01:58:00.8", "+65:43:00.3"
     # ra_val, dec_val = "05:07:57.6", "+26:11:24.0"
     # ra_val, dec_val = "23:09:04.9", "+48:42:25.0"
-    ra_val, dec_val = "21:27:39.9", "+04:19:45.7"
+    # ra_val, dec_val = "21:27:39.9", "+04:19:45.7"
     ra_val, dec_val = "19:19:33", "+86:03:52.1"
 
 
