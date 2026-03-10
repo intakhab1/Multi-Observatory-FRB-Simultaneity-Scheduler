@@ -321,7 +321,7 @@ def generate_airmass_plot(coord, night_date_str, mode="UTC", observer_name="GTC"
         ax.grid(True, alpha=0.2)
         plt.tight_layout()
         buf = io.BytesIO()
-        plt.savefig(buf, format='png')
+        plt.savefig(buf, format='png', dpi=72)
         buf.seek(0)
         plt.close(fig)
         return base64.b64encode(buf.read()).decode('utf-8')
