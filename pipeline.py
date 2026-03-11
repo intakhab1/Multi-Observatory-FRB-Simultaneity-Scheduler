@@ -484,7 +484,7 @@ def determine_moon_condition(t, coord, airmass_limit, start_date, end_date, opti
         print(f"Request Range        : {start_date} to {end_date}", flush=True)
         print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2, flush=True)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}", flush=True)
 
-        print(f"Current Airmass      : {target_airmass:.2f} (Limit: {airmass_limit}, flush=True)", flush=True)
+        print(f"Current Airmass : {target_airmass:.2f} (Limit: {airmass_limit})", flush=True)
         print(f"Moon Illumination    : {illumination * 100:.2f}%", flush=True)
         print(f"Moon Altitude        : {moon_alt:.2f}°", flush=True)
         print(f"Moon Separation      : {separation:.2f}°", flush=True)
