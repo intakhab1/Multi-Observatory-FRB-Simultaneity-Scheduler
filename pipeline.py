@@ -426,7 +426,7 @@ def generate_joint_plot(coord, night_date_str, mode="UTC", windows=None,
         plt.close(fig) 
         return img_str
     except Exception as e:
-        print(f"Joint Plot Error ({mode}, flush=True): {e}", flush=True)
+        print(f"Joint Plot Error ({mode}): {e}", flush=True)
         return None
 
 def get_local_time_str(iso_time_str, tz_name="Atlantic/Canary"):
@@ -480,11 +480,11 @@ def determine_moon_condition(t, coord, airmass_limit, start_date, end_date, opti
         target_altaz = coord.transform_to(AltAz(obstime=t, location=loc))
         target_airmass = target_altaz.secz
 
-        print(f"Log Time (UTC, flush=True)       : {t.iso}", flush=True)
+        print(f"Log Time (UTC)       : {t.iso}", flush=True)
         print(f"Request Range        : {start_date} to {end_date}", flush=True)
-        print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2, flush=True)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}", flush=True)
+        print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}", flush=True)
 
-        print(f"Current Airmass : {target_airmass:.2f} (Limit: {airmass_limit})", flush=True)
+        print(f"Current Airmass      : {target_airmass:.2f} (Limit: {airmass_limit})", flush=True)
         print(f"Moon Illumination    : {illumination * 100:.2f}%", flush=True)
         print(f"Moon Altitude        : {moon_alt:.2f}°", flush=True)
         print(f"Moon Separation      : {separation:.2f}°", flush=True)
@@ -566,14 +566,14 @@ def compute_nightly_windows(coord, date_str, airmass_limit, start_date, end_date
             altaz_opt = coord.transform_to(AltAz(obstime=midpoint, location=opt_loc))
             altaz_rad = coord.transform_to(AltAz(obstime=midpoint, location=rad_loc))
             sun_altaz = get_sun(midpoint).transform_to(AltAz(obstime=midpoint, location=opt_loc))
-            print(f"Log Time (UTC, flush=True)       : {midpoint.iso}")
+            print(f"Log Time (UTC)       : {midpoint.iso}", flush=True)
             print(f"Date                 : {date_str}  [NO JOINT WINDOW]", flush=True)
-            print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2, flush=True)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}")
-            print(f"Optical Airmass      : {altaz_opt.secz:.2f}  Alt: {altaz_opt.alt.deg:.2f}  (Limit: {airmass_limit}, flush=True)")
-            print(f"Radio Altitude       : {altaz_rad.alt.deg:.2f}  (Min: 5, flush=True)")
-            print(f"Sun Altitude         : {sun_altaz.alt.deg:.2f}  (Dark if < -18, flush=True)")
+            print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}", flush=True)
+            print(f"Optical Airmass      : {altaz_opt.secz:.2f}  Alt: {altaz_opt.alt.deg:.2f}  (Limit: {airmass_limit})", flush=True)
+            print(f"Radio Altitude       : {altaz_rad.alt.deg:.2f}  (Min: 5)", flush=True)
+            print(f"Sun Altitude         : {sun_altaz.alt.deg:.2f}  (Dark if < -18)", flush=True)
         except Exception as e:
-            print(f"Date: {date_str}  [NO JOINT WINDOW]  (log error: {e}, flush=True)")
+            print(f"Date: {date_str}  [NO JOINT WINDOW]  (log error: {e})", flush=True)
         return []
 
     windows = []
@@ -600,11 +600,11 @@ def compute_nightly_windows(coord, date_str, airmass_limit, start_date, end_date
             rad_loc = radio_location if radio_location is not None else GBO_LOCATION
             altaz_opt = coord.transform_to(AltAz(obstime=midpoint, location=opt_loc))
             altaz_rad = coord.transform_to(AltAz(obstime=midpoint, location=rad_loc))
-            print(f"Log Time (UTC, flush=True)       : {midpoint.iso}")
+            print(f"Log Time (UTC)       : {midpoint.iso}", flush=True)
             print(f"Date                 : {date_str}  [NO JOINT WINDOW — window {duration_hr:.2f}h < 2h minimum]", flush=True)
-            print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2, flush=True)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}")
-            print(f"Optical Airmass      : {altaz_opt.secz:.2f}  Alt: {altaz_opt.alt.deg:.2f}  (Limit: {airmass_limit}, flush=True)")
-            print(f"Radio Altitude       : {altaz_rad.alt.deg:.2f}  (Min: 5, flush=True)")
+            print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}", flush=True)
+            print(f"Optical Airmass      : {altaz_opt.secz:.2f}  Alt: {altaz_opt.alt.deg:.2f}  (Limit: {airmass_limit})", flush=True)
+            print(f"Radio Altitude       : {altaz_rad.alt.deg:.2f}  (Min: 5)", flush=True)
             continue
 
         midpoint = s + (e - s)* 0.5
@@ -844,7 +844,7 @@ if __name__ == "__main__":
     log_data = []
 
 
-    print(f"{'DATE':<12} | {'START (UTC, flush=True)':<20} | {'END (UTC)':<20} | {'DUR':<6} | {'MOON'}")
+    print(f"{'DATE':<12} | {'START (UTC)':<20} | {'END (UTC)':<20} | {'DUR':<6} | {'MOON'}", flush=True)
 
     for day in res['next_7_days']:
         date_label = day['date']
@@ -865,7 +865,7 @@ if __name__ == "__main__":
             log_data.append(row)
 
             # Print to terminal log
-            print(f"{row['Date']:<12} | {row['Start Time (UTC, flush=True)']:<20} | {row['End Time (UTC)']:<20} | {row['Duration (hours)']:<6} | {row['Moon Condition']}")
+            print(f"{row['Date']:<12} | {row['Start Time (UTC)']:<20} | {row['End Time (UTC)']:<20} | {row['Duration (hours)']:<6} | {row['Moon Condition']}", flush=True)
 
         #3. Save the images 
         # plots_to_save = {
