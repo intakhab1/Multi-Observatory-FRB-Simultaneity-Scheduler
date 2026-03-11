@@ -182,47 +182,22 @@ def highlight_windows(ax, windows):
             except:
                 pass
 
-# def shade_twilight_manual(ax, observer, time_grid):
-#     """Manually adds twilight shading to GBO altitude plot."""
-#     sun_coords = get_sun(time_grid).transform_to(AltAz(obstime=time_grid, location=observer.location))
-#     sun_alt = sun_coords.alt.deg
-#     for i in range(len(time_grid) - 1):
-#         t_start, t_end = time_grid[i].plot_date, time_grid[i+1].plot_date
-#         alt = sun_alt[i]
-#         if alt <= -18: # Astronomical Night
-#             ax.axvspan(t_start, t_end, color='#a9a9a9', alpha=0.2, zorder=0)
-#         elif alt <= -12: # Astronomical Twilight
-#             ax.axvspan(t_start, t_end, color='#bdbdbd', alpha=0.2, zorder=0)
-#         elif alt <= -6: # Nautical Twilight
-#             ax.axvspan(t_start, t_end, color='#d3d3d3', alpha=0.2, zorder=0)
-#         elif alt <= 0: # Civil Twilight
-#             ax.axvspan(t_start, t_end, color='#e9e9e9', alpha=0.2, zorder=0)
 def shade_twilight_manual(ax, observer, time_grid):
     """Manually adds twilight shading to GBO altitude plot."""
     sun_coords = get_sun(time_grid).transform_to(AltAz(obstime=time_grid, location=observer.location))
     sun_alt = sun_coords.alt.deg
+    for i in range(len(time_grid) - 1):
+        t_start, t_end = time_grid[i].plot_date, time_grid[i+1].plot_date
+        alt = sun_alt[i]
+        if alt <= -18: # Astronomical Night
+            ax.axvspan(t_start, t_end, color='#a9a9a9', alpha=0.2, zorder=0)
+        elif alt <= -12: # Astronomical Twilight
+            ax.axvspan(t_start, t_end, color='#bdbdbd', alpha=0.2, zorder=0)
+        elif alt <= -6: # Nautical Twilight
+            ax.axvspan(t_start, t_end, color='#d3d3d3', alpha=0.2, zorder=0)
+        elif alt <= 0: # Civil Twilight
+            ax.axvspan(t_start, t_end, color='#e9e9e9', alpha=0.2, zorder=0)
 
-    def _alt_to_color(alt):
-        if alt <= -18:   return '#a9a9a9'# Astronomical Night
-        elif alt <= -12: return '#bdbdbd'# Astronomical Twilight
-        elif alt <= -6:  return '#d3d3d3'# Nautical Twilight
-        elif alt <= 0:   return '#e9e9e9'# Civil Twilight
-        return None
-
-    # Batch consecutive identical segments → single axvspan per run (fast)
-    i = 0
-    n = len(time_grid)
-    while i < n - 1:
-        c = _alt_to_color(sun_alt[i])
-        if c is None:
-            i += 1
-            continue
-        j = i + 1
-        while j < n - 1 and _alt_to_color(sun_alt[j]) == c:
-            j += 1
-        ax.axvspan(time_grid[i].plot_date, time_grid[j].plot_date,
-                   color=c, alpha=0.2, zorder=0)
-        i = j
 def generate_airmass_plot(coord, night_date_str, mode="UTC", observer_name="GTC", windows=None,
                            observer_obj=None, obs_type="optical", plot_tz=None, plot_tz_label=None):
     """
@@ -242,7 +217,7 @@ def generate_airmass_plot(coord, night_date_str, mode="UTC", observer_name="GTC"
         observer = observer_obj if observer_obj is not None else (GTC if observer_name == "GTC" else GBO)
         
         time_center = Time(f"{night_date_str} 00:00:00") + 1 * u.day 
-        time_grid = time_center + np.linspace(-12, 12, 300) * u.hour
+        time_grid = time_center + np.linspace(-12, 12, 150) * u.hour
         
         fig, ax = plt.subplots(figsize=(6, 4))
         target = FixedTarget(coord=coord, name="Target")
@@ -319,14 +294,14 @@ def generate_airmass_plot(coord, night_date_str, mode="UTC", observer_name="GTC"
             borderpad=0.5          
         )
         ax.grid(True, alpha=0.2)
-        plt.tight_layout()
+        fig.tight_layout()
         buf = io.BytesIO()
-        plt.savefig(buf, format='png', dpi=72)
+        fig.savefig(buf, format='png', dpi=72)
         buf.seek(0)
         plt.close(fig)
         return base64.b64encode(buf.read()).decode('utf-8')
     except Exception as e:
-        print(f"Plot Error: {e}")
+        print(f"Plot Error: {e}", flush=True)
         return None
     
 
@@ -351,7 +326,7 @@ def generate_airmass_plot(coord, night_date_str, mode="UTC", observer_name="GTC"
 #             moon_airmass = np.ma.masked_where(moon_airmass < 1, moon_airmass)
 #             ax.plot(time_grid.plot_date, moon_airmass, color='gray', linestyle='--', label='Moon', alpha=0.6)
 #         except Exception as e:
-#             print(f"Moon Plot Error: {e}")
+#             print(f"Moon Plot Error: {e}", flush=True)
 #         # -----------------------
         
 #         # We keep this to ensure the Target label is shown, even without the Moon
@@ -380,7 +355,7 @@ def generate_airmass_plot(coord, night_date_str, mode="UTC", observer_name="GTC"
 #         plt.close(fig) 
 #         return img_str
 #     except Exception as e:
-#         print(f"Plot Error ({observer_name} - {mode}): {e}")
+#         print(f"Plot Error ({observer_name} - {mode}, flush=True): {e}")
 #         return None
 
 # joint plot
@@ -402,7 +377,7 @@ def generate_joint_plot(coord, night_date_str, mode="UTC", windows=None,
         plot_airmass(target, rad_obs, time_midnight, ax=ax, brightness_shading=False, 
                      style_kwargs={'color': 'red', 'linewidth': 1.5, 'linestyle': '--'})
         
-        # moon plot 
+        # --- MOON PLOT COMMENTED OUT ---
         try:
             time_grid = time_midnight + np.linspace(-12, 12, 100) * u.hour
             moon = get_body("moon", time_grid, location=opt_obs.location)
@@ -412,6 +387,7 @@ def generate_joint_plot(coord, night_date_str, mode="UTC", windows=None,
             ax.plot(time_grid.plot_date, moon_airmass, color='gray', linestyle=':', label='Moon', alpha=0.6)
         except Exception:
             pass
+        # ------------------------------------------------------------------
 
         highlight_windows(ax, windows)
 
@@ -450,7 +426,7 @@ def generate_joint_plot(coord, night_date_str, mode="UTC", windows=None,
         plt.close(fig) 
         return img_str
     except Exception as e:
-        print(f"Joint Plot Error ({mode}): {e}")
+        print(f"Joint Plot Error ({mode}, flush=True): {e}", flush=True)
         return None
 
 def get_local_time_str(iso_time_str, tz_name="Atlantic/Canary"):
@@ -504,39 +480,34 @@ def determine_moon_condition(t, coord, airmass_limit, start_date, end_date, opti
         target_altaz = coord.transform_to(AltAz(obstime=t, location=loc))
         target_airmass = target_altaz.secz
 
-        print(f"Log Time (UTC)       : {t.iso}")
-        print(f"Request Range        : {start_date} to {end_date}")
-        print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}")
+        print(f"Log Time (UTC, flush=True)       : {t.iso}", flush=True)
+        print(f"Request Range        : {start_date} to {end_date}", flush=True)
+        print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2, flush=True)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}", flush=True)
 
-        print(f"Current Airmass      : {target_airmass:.2f} (Limit: {airmass_limit})")
-        print(f"Moon Illumination    : {illumination * 100:.2f}%")
-        print(f"Moon Altitude        : {moon_alt:.2f}°")
-        print(f"Moon Separation      : {separation:.2f}°")
+        print(f"Current Airmass      : {target_airmass:.2f} (Limit: {airmass_limit}, flush=True)", flush=True)
+        print(f"Moon Illumination    : {illumination * 100:.2f}%", flush=True)
+        print(f"Moon Altitude        : {moon_alt:.2f}°", flush=True)
+        print(f"Moon Separation      : {separation:.2f}°", flush=True)
 
         #1 dark Conditions
         #moon below horizon OR (Sep >= 90 AND Illum <= 25%)
         if moon_alt < 0:
-            print("dark")
-
+            print("dark", flush=True)
             return "Dark"
         if separation >= 90 and illumination <= 0.25:
-            print("dark")
-
+            print("dark", flush=True)
             return "Dark"
 
         #2 bright Conditions
-        # (Sep <= 45) OR (Illum >= 70% AND Moon Alt > 45)
         if illumination >= 0.70 and moon_alt > 10:
-            print("bright")
+            print("bright", flush=True)
             return "Bright"
         
         if separation <= 45:
-            print("bright")
+            print("bright", flush=True)
             return "Bright"
 
-        #3 gray Conditions (everything else falls here based on criteria)
-        # (Sep 45-90) OR (25% < Illum < 70% AND Moon Alt < 45)
-        print("gray")
+        print("gray", flush=True)
         return "Gray"
 
     except Exception as e:
@@ -595,14 +566,14 @@ def compute_nightly_windows(coord, date_str, airmass_limit, start_date, end_date
             altaz_opt = coord.transform_to(AltAz(obstime=midpoint, location=opt_loc))
             altaz_rad = coord.transform_to(AltAz(obstime=midpoint, location=rad_loc))
             sun_altaz = get_sun(midpoint).transform_to(AltAz(obstime=midpoint, location=opt_loc))
-            print(f"Log Time (UTC)       : {midpoint.iso}")
-            print(f"Date                 : {date_str}  [NO JOINT WINDOW]")
-            print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}")
-            print(f"Optical Airmass      : {altaz_opt.secz:.2f}  Alt: {altaz_opt.alt.deg:.2f}  (Limit: {airmass_limit})")
-            print(f"Radio Altitude       : {altaz_rad.alt.deg:.2f}  (Min: 5)")
-            print(f"Sun Altitude         : {sun_altaz.alt.deg:.2f}  (Dark if < -18)")
+            print(f"Log Time (UTC, flush=True)       : {midpoint.iso}")
+            print(f"Date                 : {date_str}  [NO JOINT WINDOW]", flush=True)
+            print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2, flush=True)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}")
+            print(f"Optical Airmass      : {altaz_opt.secz:.2f}  Alt: {altaz_opt.alt.deg:.2f}  (Limit: {airmass_limit}, flush=True)")
+            print(f"Radio Altitude       : {altaz_rad.alt.deg:.2f}  (Min: 5, flush=True)")
+            print(f"Sun Altitude         : {sun_altaz.alt.deg:.2f}  (Dark if < -18, flush=True)")
         except Exception as e:
-            print(f"Date: {date_str}  [No Joint Window]  (log error: {e})")
+            print(f"Date: {date_str}  [NO JOINT WINDOW]  (log error: {e}, flush=True)")
         return []
 
     windows = []
@@ -629,11 +600,11 @@ def compute_nightly_windows(coord, date_str, airmass_limit, start_date, end_date
             rad_loc = radio_location if radio_location is not None else GBO_LOCATION
             altaz_opt = coord.transform_to(AltAz(obstime=midpoint, location=opt_loc))
             altaz_rad = coord.transform_to(AltAz(obstime=midpoint, location=rad_loc))
-            print(f"Log Time (UTC)       : {midpoint.iso}")
-            print(f"Date                 : {date_str}  [NO JOINT WINDOW — window {duration_hr:.2f}h < 2h minimum]")
-            print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}")
-            print(f"Optical Airmass      : {altaz_opt.secz:.2f}  Alt: {altaz_opt.alt.deg:.2f}  (Limit: {airmass_limit})")
-            print(f"Radio Altitude       : {altaz_rad.alt.deg:.2f}  (Min: 5)")
+            print(f"Log Time (UTC, flush=True)       : {midpoint.iso}")
+            print(f"Date                 : {date_str}  [NO JOINT WINDOW — window {duration_hr:.2f}h < 2h minimum]", flush=True)
+            print(f"Target RA/Dec        : {coord.ra.to_string(unit=u.hour, sep=':', precision=2, flush=True)} , {coord.dec.to_string(unit=u.deg, sep=':', precision=2)}")
+            print(f"Optical Airmass      : {altaz_opt.secz:.2f}  Alt: {altaz_opt.alt.deg:.2f}  (Limit: {airmass_limit}, flush=True)")
+            print(f"Radio Altitude       : {altaz_rad.alt.deg:.2f}  (Min: 5, flush=True)")
             continue
 
         midpoint = s + (e - s)* 0.5
@@ -689,10 +660,14 @@ def process_date_range(coord, start_date_str, end_date_str, airmass_limit,
     # if delta_days > 31: 
     #     delta_days = 31 #cap at 1 month for now as it is crashing 
 
+    import threading as _threading
+    _tid = _threading.current_thread().name
+
     for i in range(delta_days):
         date_obj = start_date + timedelta(days=i)
         date_str = date_obj.strftime("%Y-%m-%d")
-        
+        print(f"[{_tid}] Night {i+1}/{delta_days}: {date_str} — computing…", flush=True)
+
         windows = compute_nightly_windows(
             coord, date_str, airmass_limit, start_date_str, end_date_str,
             optical_observer=optical_observer, optical_location=optical_location,
@@ -833,7 +808,7 @@ def run_pipeline(ra, dec, start_date=None, end_date=None, airmass_limit=2.5,
         "dec_input": dec, 
         "ra_deg": round(coord.ra.deg, 6), 
         "dec_deg": round(coord.dec.deg, 6),
-        #include selected observatory metadata so the frontend can show names/labels
+        # Include selected observatory metadata so the frontend can show names/labels
         "optical_obs": OBSERVATORY_REGISTRY["optical"][optical_key],
         "radio_obs":   OBSERVATORY_REGISTRY["radio"][radio_key],
         "tonight": {
@@ -855,7 +830,7 @@ if __name__ == "__main__":
     # ra_val, dec_val = "01:58:00.8", "+65:43:00.3"
     # ra_val, dec_val = "05:07:57.6", "+26:11:24.0"
     # ra_val, dec_val = "23:09:04.9", "+48:42:25.0"
-    # ra_val, dec_val = "21:27:39.9", "+04:19:45.7"
+    ra_val, dec_val = "21:27:39.9", "+04:19:45.7"
     ra_val, dec_val = "19:19:33", "+86:03:52.1"
 
 
@@ -869,7 +844,7 @@ if __name__ == "__main__":
     log_data = []
 
 
-    print(f"{'DATE':<12} | {'START (UTC)':<20} | {'END (UTC)':<20} | {'DUR':<6} | {'MOON'}")
+    print(f"{'DATE':<12} | {'START (UTC, flush=True)':<20} | {'END (UTC)':<20} | {'DUR':<6} | {'MOON'}")
 
     for day in res['next_7_days']:
         date_label = day['date']
@@ -890,7 +865,7 @@ if __name__ == "__main__":
             log_data.append(row)
 
             # Print to terminal log
-            print(f"{row['Date']:<12} | {row['Start Time (UTC)']:<20} | {row['End Time (UTC)']:<20} | {row['Duration (hours)']:<6} | {row['Moon Condition']}")
+            print(f"{row['Date']:<12} | {row['Start Time (UTC, flush=True)']:<20} | {row['End Time (UTC)']:<20} | {row['Duration (hours)']:<6} | {row['Moon Condition']}")
 
         #3. Save the images 
         # plots_to_save = {

@@ -4,6 +4,7 @@ import json
 import mimetypes
 import datetime
 import traceback
+import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse, parse_qs
@@ -39,6 +40,12 @@ class RequestHandler(BaseHTTPRequestHandler):
     #CORS pre-flight 
     def do_OPTIONS(self):
         self._send_cors(200)
+        self.end_headers()
+
+    # Render health-checker and some browsers send HEAD — without this Python returns 501.
+    def do_HEAD(self):
+        self._send_cors(200)
+        self.send_header("Content-Type", "text/html")
         self.end_headers()
 
     #main GET handler 
@@ -79,13 +86,14 @@ class RequestHandler(BaseHTTPRequestHandler):
             airmass_limit = 2.5
 
         #request header log
-        print(f"[{datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC] NEW COMPUTE REQUEST")
-        print(f"RA : {ra}")
-        print(f"Dec : {dec}")
-        print(f"Date range : {start_date} → {end_date}")
-        print(f"Max airmass : {airmass_limit}")
-        print(f"Optical obs : {optical_key}")
-        print(f"Radio obs : {radio_key}")
+        tid = threading.current_thread().name
+        print(f"[{datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC] [{tid}] NEW COMPUTE REQUEST", flush=True)
+        print(f"[{tid}] RA : {ra}", flush=True)
+        print(f"[{tid}] Dec : {dec}", flush=True)
+        print(f"[{tid}] Date range : {start_date} → {end_date}", flush=True)
+        print(f"[{tid}] Airmass : {airmass_limit}", flush=True)
+        print(f"[{tid}] Optical : {optical_key}", flush=True)
+        print(f"[{tid}] Radio : {radio_key}", flush=True)
 
         try:
             t0 = datetime.datetime.now(datetime.timezone.utc)
@@ -100,7 +108,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             elapsed = (datetime.datetime.now(datetime.timezone.utc) - t0).total_seconds()
             nights  = len(result.get("next_7_days", []))
             hits    = sum(1 for d in result.get("next_7_days", []) if d.get("windows"))
-            print(f"{nights} nights processed in {elapsed:.1f}s — {hits} nights with joint window")
+            print(f"[{tid}] DONE: {nights} nights in {elapsed:.1f}s — {hits} nights with joint window", flush=True)
             self._json(result)
         except Exception as e:
             import traceback

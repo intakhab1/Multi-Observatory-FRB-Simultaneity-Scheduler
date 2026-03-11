@@ -6,7 +6,6 @@ A web-based scheduling tool for planning simultaneous radio–optical observatio
 
 ![Input Form](assets/screenshots/01_input_form.png)
 
----
 
 ## Table of Contents
 
@@ -26,8 +25,6 @@ A web-based scheduling tool for planning simultaneous radio–optical observatio
 - [Known Limitations](#known-limitations)
 - [Authors](#authors)
 
----
-
 ## Overview
 
 This tool computes **joint visibility windows** during which a repeating FRB can be observed simultaneously from a radio telescope and an optical telescope. It generates nightly visibility plots, moon condition assessments, and exportable observing windows — supporting coordinated Target-of-Opportunity (ToO) campaigns.
@@ -35,8 +32,6 @@ This tool computes **joint visibility windows** during which a repeating FRB can
 The primary use case is the approved **GTC/HiPERCAM** ToO program coordinated with **Effelsberg** and/or **GBO** radio observations, targeting known repeating FRBs to search for prompt optical counterparts.
 
 Try it live at: [https://multi-observatory-frb.onrender.com](https://multi-observatory-frb.onrender.com)
-
----
 
 ## Science Motivation
 
@@ -76,8 +71,6 @@ The green-shaded region shows the joint window during which strictly simultaneou
 |----------------------|---------------|
 | ![Effelsberg Visibility](assets/effelsberg_visibility.png) | ![GTC Visibility](assets/gtc_visibility.png) |
 
----
-
 ## Features
 
 - **Joint visibility computation** — finds windows where both radio and optical telescopes can observe simultaneously
@@ -92,8 +85,6 @@ The green-shaded region shows the joint window during which strictly simultaneou
 - **CSV export** — observation windows saved to `observation_windows.csv` when running in CLI mode
 - **Render-ready deployment** — single service handles both frontend and backend
 
----
-
 ## Screenshots
 
 ### Input Form
@@ -107,8 +98,6 @@ The green-shaded region shows the joint window during which strictly simultaneou
 
 ### Mobile View
 ![Mobile View](assets/screenshots/04_mobile_view.png)
-
----
 
 ## Working
 
